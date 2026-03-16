@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Shop ACC Blox Fruit</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+text-align:center;
+}
+
+input{
+padding:8px;
+margin:5px;
+}
+
+button{
+padding:8px 14px;
+background:#38bdf8;
+border:none;
+border-radius:6px;
+color:white;
+cursor:pointer;
+}
+
+.card{
+background:#1e293b;
+padding:15px;
+margin:10px;
+border-radius:10px;
+display:inline-block;
+width:220px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>SHOP ACC BLOX FRUIT</h1>
+
+<div id="login">
+
+<h2>Đăng nhập</h2>
+
+<input id="user" placeholder="Tên"><br>
+<input id="pass" type="password" placeholder="Mật khẩu"><br>
+
+<button onclick="register()">Đăng ký</button>
+<button onclick="login()">Đăng nhập</button>
+
+</div>
+
+
+<div id="shop" style="display:none">
+
+<h3>Xin chào <span id="name"></span></h3>
+
+<p>Số dư: <span id="money">0</span> VNĐ</p>
+
+<button onclick="nap()">Nạp 50k</button>
+
+<h2>Shop ACC</h2>
+
+<div id="list"></div>
+
+<h2>Lịch sử mua</h2>
+
+<div id="history"></div>
+
+</div>
+
+
+<div id="admin" style="display:none">
+
+<h2>ADMIN PANEL</h2>
+
+<input id="accuser" placeholder="User ACC"><br>
+<input id="accpass" placeholder="Pass ACC"><br>
+<input id="price" placeholder="Giá"><br>
+
+<button onclick="add()">Thêm ACC</button>
+
+<h3>Quản lý ACC</h3>
+
+<div id="adminlist"></div>
+
+</div>
+
+
+<script>
+
+let accs = JSON.parse(localStorage.getItem("accs")) || []
+let history = JSON.parse(localStorage.getItem("history")) || []
+
+function register(){
+
+let u=user.value
+let p=pass.value
+
+localStorage.setItem("user",u)
+localStorage.setItem("pass",p)
+localStorage.setItem("money",0)
+
+alert("Đăng ký thành công")
+
+}
+
+function login(){
+
+let u=user.value
+let p=pass.value
+
+if(u==localStorage.getItem("user") && p==localStorage.getItem("pass")){
+
+login.style.display="none"
+shop.style.display="block"
+
+name.innerHTML=u
+money.innerHTML=localStorage.getItem("money")
+
+show()
+showHistory()
+
+if(u=="admin"){
+admin.style.display="block"
+showAdmin()
+}
+
+}else{
+
+alert("Sai tài khoản")
+
+}
+
+}
+
+function nap(){
+
+let m=parseInt(localStorage.getItem("money"))
+m+=50000
+
+localStorage.setItem("money",m)
+
+money.innerHTML=m
+
+}
+
+function add(){
+
+let u=accuser.value
+let p=accpass.value
+let pr=price.value
+
+accs.push({user:u,pass:p,price:pr})
+
+localStorage.setItem("accs",JSON.stringify(accs))
+
+show()
+showAdmin()
+
+}
+
+function show(){
+
+let html=""
+
+accs.forEach((a,i)=>{
+
+html+=`
+<div class="card">
+<p>ACC Blox Fruit</p>
+<p>Giá: ${a.price}</p>
+<button onclick="buy(${i})">Mua</button>
+</div>
+`
+
+})
+
+list.innerHTML=html
+
+}
+
+function buy(i){
+
+let m=parseInt(localStorage.getItem("money"))
+let pr=parseInt(accs[i].price)
+
+if(m>=pr){
+
+m-=pr
+localStorage.setItem("money",m)
+
+money.innerHTML=m
+
+alert("ACC của bạn:\nUser: "+accs[i].user+"\nPass: "+accs[i].pass)
+
+history.push(accs[i])
+
+localStorage.setItem("history",JSON.stringify(history))
+
+accs.splice(i,1)
+
+localStorage.setItem("accs",JSON.stringify(accs))
+
+show()
+showAdmin()
+showHistory()
+
+}else{
+
+alert("Không đủ tiền")
+
+}
+
+}
+
+function showHistory(){
+
+let html=""
+
+history.forEach(a=>{
+
+html+=`
+<div class="card">
+<p>${a.user}</p>
+<p>${a.price} VNĐ</p>
+</div>
+`
+
+})
+
+document.getElementById("history").innerHTML=html
+
+}
+
+function showAdmin(){
+
+let html=""
+
+accs.forEach((a,i)=>{
+
+html+=`
+<div class="card">
+<p>${a.user}</p>
+<p>${a.price}</p>
+<button onclick="del(${i})">Xóa</button>
+</div>
+`
+
+})
+
+adminlist.innerHTML=html
+
+}
+
+function del(i){
+
+accs.splice(i,1)
+
+localStorage.setItem("accs",JSON.stringify(accs))
+
+show()
+showAdmin()
+
+}
+
+</script>
+
+</body>
+</html>
