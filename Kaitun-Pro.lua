@@ -1,105 +1,95 @@
 -- [[ CONFIGURATION ]]
 getgenv().Config = {
     AutoChest = false,
-    SafeMode = true, -- Tàng hình khi nhặt rương
-    AntiBan = true
+    SafeMode = true,
+    ChestDistance = 100000 -- Khoảng cách quét toàn bản đồ
 }
 
--- [[ 1. HỆ THỐNG ANTI-BAN & BYPASS ]]
-local function ActivateAntiBan()
+-- [[ 1. HỆ THỐNG ANTI-BAN CHUYÊN DỤNG ]]
+local function InitAntiBan()
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
     local oldNamecall = mt.__namecall
-
     mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if method == "FireServer" then
-            local args = {...}
-            -- Chặn các Remote quét tốc độ và dịch chuyển
-            if tostring(self) == "AdminCheck" or tostring(self) == "CheatCheck" or tostring(self) == "Logger" then
-                return nil
-            end
+        if getnamecallmethod() == "FireServer" and (tostring(self):find("Check") or tostring(self):find("Teleport")) then
+            return nil
         end
         return oldNamecall(self, ...)
     end)
-    
-    -- Chặn bị văng khi di chuyển nhanh giữa các rương
-    local oldIndex = mt.__index
-    mt.__index = newcclosure(function(t, k)
-        if k == "WalkSpeed" then return 16 end
-        return oldIndex(t, k)
-    end)
     setreadonly(mt, true)
-    print("🛡️ Anti-Ban Nhặt Rương: Đã Kích Hoạt")
 end
-ActivateAntiBan()
+InitAntiBan()
 
--- [[ 2. LOGIC NHẶT RƯƠNG THÔNG MINH ]]
+-- [[ 2. HÀM TÌM RƯƠNG THẾ HỆ MỚI (FIX LỖI KHÔNG NHẬT) ]]
+local function GetAllChests()
+    local Chests = {}
+    -- Quét toàn bộ Workspace để tìm các vật thể có tên "Chest"
+    for _, v in pairs(game:GetService("Workspace"):GetDescendants()) do
+        if v:IsA("TouchTransmitter") and (v.Parent.Name:find("Chest") or v.Parent.Name:find("Giver")) then
+            table.insert(Chests, v.Parent)
+        end
+    end
+    return Chests
+end
+
+-- [[ 3. LOGIC NHẬT RƯƠNG SIÊU TỐC ]]
 spawn(function()
     while wait() do
         if getgenv().Config.AutoChest then
             pcall(function()
                 local player = game.Players.LocalPlayer
                 local character = player.Character
+                local root = character:FindFirstChild("HumanoidRootPart")
                 
-                -- Tìm rương trong Workspace
-                for _, v in pairs(game:GetService("Workspace"):GetChildren()) do
-                    if v:IsA("Part") and (v.Name:find("Chest") or v.Name:find("ChestGiver")) then
-                        -- Chế độ tàng hình/xuyên tường để an toàn
-                        if getgenv().Config.SafeMode then
-                            for _, part in pairs(character:GetDescendants()) do
-                                if part:IsA("BasePart") then part.CanCollide = false end
+                local allChests = GetAllChests()
+                
+                if #allChests > 0 then
+                    for _, chest in pairs(allChests) do
+                        if not getgenv().Config.AutoChest then break end
+                        if chest:FindFirstChild("TouchTransmitter") then
+                            -- Chế độ xuyên tường
+                            if getgenv().Config.SafeMode then
+                                character.Humanoid:ChangeState(11)
                             end
-                        end
 
-                        -- Bay tới rương (Sử dụng Tween để mượt hơn, tránh bị kick)
-                        repeat
-                            if not getgenv().Config.AutoChest then break end
-                            character.HumanoidRootPart.CFrame = v.CFrame
-                            wait(0.1) -- Tốc độ nhặt rương (0.1 là cực nhanh)
-                        until not v:IsDescendantOf(game:GetService("Workspace")) or not getgenv().Config.AutoChest
+                            -- Bay tới rương
+                            root.CFrame = chest.CFrame
+                            
+                            -- Lệnh chạm ảo (Kích hoạt nhặt rương ngay lập tức)
+                            firetouchinterest(root, chest, 0)
+                            wait(0.1)
+                            firetouchinterest(root, chest, 1)
+                            
+                            wait(0.2) -- Đợi rương biến mất rồi đi rương tiếp theo
+                        end
                     end
+                else
+                    -- Nếu không còn rương, đợi 5s để rương hồi (respawn)
+                    print("Hết rương trên Server, đang đợi...")
+                    wait(5)
                 end
             end)
         end
     end
 end)
 
--- [[ 3. GIAO DIỆN RAYFIELD UI ]]
+-- [[ 4. GIAO DIỆN ]]
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "💰 SCRIPT CHEST: AUTO COLLECTOR",
-   LoadingTitle = "Đang quét rương trên bản đồ...",
+   Name = "💰 GEMINI FIX: CHEST MASTER",
+   LoadingTitle = "Đang áp dụng Deep Scan rương...",
 })
 
-local MainTab = Window:CreateTab("Nhặt Rương", 4483362458)
+local Tab = Window:CreateTab("Auto Chest", 4483362458)
 
-MainTab:CreateToggle({
-   Name = "Bật Tự Động Nhặt Rương (Auto Chest)",
+Tab:CreateToggle({
+   Name = "Bật Nhặt Rương (Đã Fix)",
    CurrentValue = false,
-   Callback = function(Value) 
-      getgenv().Config.AutoChest = Value 
-      if Value then
-          Rayfield:Notify({Title = "Thông báo", Content = "Đang bắt đầu đi lượm tiền...", Duration = 3})
-      end
-   end,
+   Callback = function(Value) getgenv().Config.AutoChest = Value end,
 })
 
-MainTab:CreateToggle({
-   Name = "Chế độ An Toàn (Safe Mode)",
-   CurrentValue = true,
-   Callback = function(Value) getgenv().Config.SafeMode = Value end,
-})
+Tab:CreateLabel("Hệ thống sẽ tự động quét rương ẩn.")
+Tab:CreateLabel("Lưu ý: Nếu đứng im là do Server hết rương.")
 
-MainTab:CreateSection("Thông tin túi đồ")
-local BeliLabel = MainTab:CreateLabel("Tiền hiện có: Loading...")
-
--- Cập nhật tiền liên tục lên Menu
-spawn(function()
-    while wait(1) do
-        BeliLabel:Set("Tiền hiện có: " .. game.Players.LocalPlayer.Data.Beli.Value .. " 💵")
-    end
-end)
-
-Rayfield:Notify({Title = "Sẵn Sàng!", Content = "Hệ thống nhặt rương đã được nạp.", Duration = 5
+Rayfield:Notify({Title = "Đã Fix Lỗi Nhặt", Content = "Sử dụng firetouchinterest để nhặt cực nhanh.", Duration = 5
     })
